@@ -21,19 +21,17 @@ int main(int argc, char const *argv[])
     ifstream inFile;
     int found = 0;
 
+    #ifndef DEBUG
     if (argv[1] == nullptr)
     {
-    #ifndef DEBUG
         printf("Keine Dateien angegebn\n");
-    #endif
     }
     else if (argv[2] == nullptr)
     {
-    #ifndef DEBUG
         printf("Keine Ausgabe Datei angegeben");
-    #endif
     }
     else
+    #endif
     {
     #ifndef DEBUG
         inFile.open((string)(argv[1]));
@@ -58,12 +56,13 @@ int main(int argc, char const *argv[])
         while (!inFile.eof())
         {
             currentChar = inFile.get();
-            for (int i = 0; i < MAX_ZEICHEN; i++)
+            for (int i = 0; i < zeichensatz.size(); i++)
             {
-                if (currentChar == zeichensatz[i])
+                if (currentChar == (char)zeichensatz[i])
                 {
                     zeichenCount[i]++;
                     found = 1;
+                    i = zeichensatz.size();
                 }
             }
             if (!found)
@@ -253,7 +252,7 @@ int main(int argc, char const *argv[])
 
         for (int i = 0; i < MAX_ZEICHEN; i++)
         {
-            outFile << zeichensatz[i] << '\t' << zeichenCount[i] << endl;
+            outFile << zeichensatz[i] << "\t" << zeichenCount[i] << endl;
         }
         outFile.close();
     }
