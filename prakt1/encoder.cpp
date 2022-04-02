@@ -13,7 +13,32 @@ char currentChar;
 char lastChar = '\377';
 int charCounter = 0;
 
-
+void putMany(ofstream * output, char character, int characterCount){
+    int counter = characterCount;
+    do
+    {
+        // check times the char was found
+        if (counter < 3)
+        {
+            // found max 2 times
+            for (int i = 0; i < counter; i++)
+            {
+                (*output) << character;   
+            }
+            counter -= 2;
+        }
+        // found more than one byte long sequence
+        else if (counter > 258){
+            (*output) << character << character << character << (int)(counter-3);
+            counter -= 258;
+        }
+        // found a sequence that fits in a byte
+        else {
+            (*output) << character << character << character << (int)(counter-3);      
+            counter = 0;
+        }
+    } while (counter > 0);
+}                  
 
 int main(int argc, char const *argv[])
 {
@@ -59,24 +84,10 @@ int main(int argc, char const *argv[])
         else {
             do
             {
-                currentChar = inputFile.get();
-
                 // chaeck last and current char
-                if ((currentChar != lastChar) && (lastChar != EOF))
+                if ((currentChar != lastChar) && (currentChar != EOF))
                 {
-                    // check times the char was found
-                    if (charCounter < 3)
-                    {
-                        // found max 2 times
-                        for (int i = 0; i < charCounter; i++)
-                        {
-                            outputFile << lastChar;
-                        }
-                    }
-                    // found more than 2 times
-                    else {
-                        outputFile << currentChar << currentChar << currentChar << (charCounter-3);
-                    }
+                    putMany(&outputFile, lastChar, charCounter);
                     // set memorize found char
                     lastChar = currentChar;
                     charCounter = 1;
@@ -86,6 +97,7 @@ int main(int argc, char const *argv[])
                 {
                     charCounter++;
                 }
+                currentChar = inputFile.get();
             }
             while (currentChar != EOF);
         }
