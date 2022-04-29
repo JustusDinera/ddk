@@ -2,18 +2,24 @@
 #include <stdio.h>
 #include <fstream>
 #include <vector>
+#include <algorithm>
 
 #define DEBUG
 
 using namespace std;
+
+typedef struct Tcounter
+{
+    unsigned char carakter;
+    int count;
+};
+
 
 /* 
     Variablen Deklaration
 */
 int currentChar;
 int lastChar = '\377';
-int charCounter = 0;
-int charCount[256];
 
 
 /*
@@ -44,12 +50,29 @@ void putMany(ofstream * output, char character, int characterCount){
     } while (counter > 0);
 }                  
 */ 
+bool sortVector(Tcounter i, Tcounter j){
+    return (i.count > j.count);
+}
+
+
 
 int main(int argc, char const *argv[])
 {
     ifstream inputFile;
     ofstream outputFile;
-    vector<char> inFile;
+    vector<unsigned char> inFile;
+    vector<Tcounter> charCount;
+    Tcounter tempCount;
+
+    // inital fill charCounter
+    tempCount.count = 0;
+    for (int i = 0; i < 256; i++)
+    {
+        tempCount.carakter = i;
+        charCount.push_back(tempCount);
+    }
+    
+
 
 #ifndef DEBUG
     if (argv[1] == nullptr)
@@ -87,18 +110,18 @@ int main(int argc, char const *argv[])
             printf("Leere Datei geoeffnet\n");
         }
         else {
+            // count character in the file 
             do
             {
-                inFile.push_back(currentChar);
+                charCount[(unsigned char)currentChar].count++;
                 currentChar = inputFile.get();
             }
             while (currentChar != EOF);
+
+            sort(charCount.begin(), charCount.end(), sortVector);
         }
-        // count characters
-        for (int i = 0; i < inFile.size(); i++)
-        {
-            charCount[inFile[i]]++;
-        }
+
+        
 
         // close files
         inputFile.close();
