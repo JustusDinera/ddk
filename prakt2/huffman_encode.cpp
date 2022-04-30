@@ -8,10 +8,26 @@
 
 using namespace std;
 
+// datatype for character counter
 typedef struct Tcounter
 {
-    unsigned char carakter;
+    unsigned char character;
     int count;
+};
+
+typedef struct node {
+  string character;
+  int count;
+  struct node *left = nullptr;
+  struct node *right = nullptr;
+};
+
+// datatype for encode symbole table 
+typedef struct TsymTab
+{
+    unsigned char character;
+    unsigned char patternLen;
+    unsigned char bitPatern;
 };
 
 
@@ -50,30 +66,44 @@ void putMany(ofstream * output, char character, int characterCount){
     } while (counter > 0);
 }                  
 */ 
-bool sortVector(Tcounter i, Tcounter j){
-    return (i.count > j.count);
+bool sortVectorDec(node * i, node * j){
+    return (i->count > j->count);
 }
 
+bool sortVectorAsc(Tcounter i, Tcounter j){
+    return (i.count < j.count);
+}
 
+node * createNode(string character, int count) {
+    struct node *node = (struct node *)malloc(sizeof(struct node));
+    node->character = character;
+    node->count = count;
+    node->left = nullptr;
+    node->right = nullptr;
+    return node;
+}
 
 int main(int argc, char const *argv[])
 {
     ifstream inputFile;
     ofstream outputFile;
     vector<unsigned char> inFile;
-    vector<Tcounter> charCount;
-    Tcounter tempCount;
+    vector<node *> charCount;
+    node tempCount;
+    string tempCharacter;
+    int size;
 
+
+    vector<TsymTab> codeTable;
+    TsymTab tempTabItem;
     // inital fill charCounter
     tempCount.count = 0;
     for (int i = 0; i < 256; i++)
     {
-        tempCount.carakter = i;
-        charCount.push_back(tempCount);
+        tempCount.character = i;
+        charCount.push_back(createNode(std::string(1, (unsigned char)i), 0));
     }
     
-
-
 #ifndef DEBUG
     if (argv[1] == nullptr)
     {
@@ -113,15 +143,61 @@ int main(int argc, char const *argv[])
             // count character in the file 
             do
             {
-                charCount[(unsigned char)currentChar].count++;
+                charCount[(unsigned char)currentChar]->count++;
                 currentChar = inputFile.get();
             }
             while (currentChar != EOF);
 
-            sort(charCount.begin(), charCount.end(), sortVector);
+            // sort the vector -> most common first
+            sort(charCount.begin(), charCount.end(), sortVectorDec);
+
+            do
+            {
+                size = charCount.size();
+                // fill code table with zero length characters
+                if (charCount[size-1]->count == 0)
+                {
+                    // build table item
+                    tempTabItem.character = charCount[size-1]->character[0];
+                    tempTabItem.patternLen = 0;
+                    tempTabItem.bitPatern = 0;
+                    // push table item
+                    codeTable.push_back(tempTabItem);
+                    // delete last entry of counter
+                    charCount.pop_back();
+                }
+                else {
+                    // build characer sting 
+                    tempCharacter.assign(charCount[size-1]->character);
+                    tempCharacter.append(charCount[size-2]->character); 
+                    // set count with sum of two least elements
+                    charCount.push_back(createNode(tempCharacter, charCount[size-1]->count + charCount[size-2]->count));
+                    // set childe nodes
+                    charCount[size-1]->left = charCount[size-3];
+                    charCount[size-1]->right = charCount[size-2];
+                    // rank new entry 
+                    sort(charCount.begin(), charCount.end(), sortVectorDec);
+                    // pop childe nodes
+                    charCount.pop_back();
+                    charCount.pop_back();
+                }
+            }
+            while (size > 1);
+            
+
+            for (int i = size-1; i >= 0; i--)
+            {
+                
+            }
+            
+
+              
+
+            
+
         }
 
-        
+
 
         // close files
         inputFile.close();
