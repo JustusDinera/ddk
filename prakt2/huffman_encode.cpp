@@ -37,35 +37,6 @@ typedef struct TsymTab
 int currentChar;
 int lastChar = '\377';
 
-
-/*
-void putMany(ofstream * output, char character, int characterCount){
-    int counter = characterCount;
-    do
-    {
-        // check times the char was found
-        if (counter < 3)
-        {
-            // found max 2 times
-            for (int i = counter; i > 0; i--)
-            {
-                (*output) << character;
-                counter--;
-            }
-        }
-        // found more than one byte long sequence
-        else if (counter > 258){
-            (*output) << character << character << character << (uint8_t)(255);
-            counter -= 258;
-        }
-        // found a sequence that fits in a byte
-        else {
-            (*output) << character << character << character << (uint8_t)(counter-3);      
-            counter = 0;
-        }
-    } while (counter > 0);
-}                  
-*/ 
 bool sortVectorDec(node * i, node * j){
     return (i->count > j->count);
 }
@@ -92,16 +63,14 @@ int main(int argc, char const *argv[])
     node tempCount;
     string tempCharacter;
     int size;
-
-
     vector<TsymTab> codeTable;
     TsymTab tempTabItem;
+
     // inital fill charCounter
-    tempCount.count = 0;
     for (int i = 0; i < 256; i++)
     {
-        tempCount.character = i;
-        charCount.push_back(createNode(std::string(1, (unsigned char)i), 0));
+        tempCharacter = (unsigned char)i;
+        charCount.push_back(createNode(tempCharacter, 0));
     }
     
 #ifndef DEBUG
@@ -168,8 +137,8 @@ int main(int argc, char const *argv[])
                 }
                 else {
                     // build characer sting 
-                    tempCharacter.assign(charCount[size-1]->character);
-                    tempCharacter.append(charCount[size-2]->character); 
+                    tempCharacter.assign(charCount[size-1]->character + charCount[size-2]->character);
+                    //tempCharacter.append(charCount[size-2]->character); 
                     // set count with sum of two least elements
                     charCount.push_back(createNode(tempCharacter, charCount[size-1]->count + charCount[size-2]->count));
                     // set childe nodes
@@ -183,21 +152,7 @@ int main(int argc, char const *argv[])
                 }
             }
             while (size > 1);
-            
-
-            for (int i = size-1; i >= 0; i--)
-            {
-                
-            }
-            
-
-              
-
-            
-
         }
-
-
 
         // close files
         inputFile.close();
