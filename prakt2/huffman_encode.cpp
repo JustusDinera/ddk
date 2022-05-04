@@ -16,7 +16,7 @@ typedef struct Tcounter
 };
 
 typedef struct node {
-  string character;
+  unsigned char character;
   int count;
   struct node *left = nullptr;
   struct node *right = nullptr;
@@ -26,16 +26,45 @@ typedef struct node {
 typedef struct TsymTab
 {
     unsigned char character;
-    unsigned char patternLen;
-    unsigned char bitPatern;
+    unsigned char patternLen = 0;
+    long bitPatern;
 };
 
-
 /* 
-    Variablen Deklaration
+    variable declaration
 */
 int currentChar;
 int lastChar = '\377';
+
+unsigned char traverseNodes(node * nodeTranvers, vector<TsymTab> * table){
+    unsigned char retVal = 0;
+    if (nodeTranvers->right != nullptr)
+    {
+        // get char from lower right node
+        retVal = traverseNodes(nodeTranvers->right, table);
+        // increase length
+        (table->begin()+retVal)->patternLen++;
+        // shift "1" in on left
+        ((table->begin()+retVal)->bitPatern) >>= 1;
+        ((table->begin()+retVal)->bitPatern) |= 1;
+    }
+    else if (nodeTranvers->left != nullptr)
+    {
+        // get char from lower left node
+        retVal = traverseNodes(nodeTranvers->left, table);
+        // increase lenght 
+        (table->begin()+retVal)->patternLen++;
+        // shift "0" in on left        
+        ((table->begin()+retVal)->bitPatern) >>= 1;
+    }
+    else 
+    {
+        // return char if the node has no childe
+        retVal = nodeTranvers->character;
+    }
+
+    return retVal;
+}
 
 bool sortVectorDec(node * i, node * j){
     return (i->count > j->count);
@@ -45,7 +74,7 @@ bool sortVectorAsc(Tcounter i, Tcounter j){
     return (i.count < j.count);
 }
 
-node * createNode(string character, int count) {
+node * createNode(unsigned char character, int count) {
     struct node *node = (struct node *)malloc(sizeof(struct node));
     node->character = character;
     node->count = count;
@@ -61,7 +90,7 @@ int main(int argc, char const *argv[])
     vector<unsigned char> inFile;
     vector<node *> charCount;
     node tempCount;
-    string tempCharacter;
+    unsigned char tempCharacter;
     int size;
     vector<TsymTab> codeTable;
     TsymTab tempTabItem;
@@ -127,7 +156,7 @@ int main(int argc, char const *argv[])
                 if (charCount[size-1]->count == 0)
                 {
                     // build table item
-                    tempTabItem.character = charCount[size-1]->character[0];
+                    tempTabItem.character = charCount[size-1]->character;
                     tempTabItem.patternLen = 0;
                     tempTabItem.bitPatern = 0;
                     // push table item
@@ -137,13 +166,13 @@ int main(int argc, char const *argv[])
                 }
                 else {
                     // build characer sting 
-                    tempCharacter.assign(charCount[size-1]->character + charCount[size-2]->character);
                     //tempCharacter.append(charCount[size-2]->character); 
                     // set count with sum of two least elements
-                    charCount.push_back(createNode(tempCharacter, charCount[size-1]->count + charCount[size-2]->count));
+                    charCount.push_back(createNode('\000', charCount[size-1]->count + charCount[size-2]->count));
+                    
                     // set childe nodes
-                    charCount[size-1]->left = charCount[size-3];
-                    charCount[size-1]->right = charCount[size-2];
+                    charCount[size]->left = charCount[size-1];
+                    charCount[size]->right = charCount[size-2];
                     // rank new entry 
                     sort(charCount.begin(), charCount.end(), sortVectorDec);
                     // pop childe nodes
@@ -151,8 +180,18 @@ int main(int argc, char const *argv[])
                     charCount.pop_back();
                 }
             }
-            while (size > 1);
+            while (size > 2);
+            
+            // traverse node tree
+            traverseNodes(charCount[0], &codeTable);
+            
+            // write to file
+            /*
+                TODO !!! !!! !!!
+            */
         }
+
+
 
         // close files
         inputFile.close();
@@ -160,8 +199,5 @@ int main(int argc, char const *argv[])
         outputFile.close();
     }
     
-
-
-
     return 0;
 }
