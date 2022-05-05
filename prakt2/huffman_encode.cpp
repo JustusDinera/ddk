@@ -36,6 +36,28 @@ typedef struct TsymTab
 int currentChar;
 int lastChar = '\377';
 
+
+// function to sort count vector decrementing 
+bool sortVectorDec(node * i, node * j){
+    return (i->count > j->count);
+}
+
+// function to sort count vector ascrementing 
+bool sortVectorAsc(Tcounter i, Tcounter j){
+    return (i.count < j.count);
+}
+
+// creates a node
+node * createNode(unsigned char character, int count) {
+    struct node *node = (struct node *)malloc(sizeof(struct node));
+    node->character = character;
+    node->count = count;
+    node->left = nullptr;
+    node->right = nullptr;
+    return node;
+}
+
+// traverse through binary tree and delete smalest item
 unsigned char traverseNodes(node * nodeTranvers, vector<TsymTab> * table){
     unsigned char retVal = 0;
     if (nodeTranvers->right != nullptr)
@@ -45,8 +67,11 @@ unsigned char traverseNodes(node * nodeTranvers, vector<TsymTab> * table){
         // increase length
         (table->begin()+retVal)->patternLen++;
         // shift "1" in on left
-        ((table->begin()+retVal)->bitPatern) >>= 1;
+        ((table->begin()+retVal)->bitPatern) <<= 1;
         ((table->begin()+retVal)->bitPatern) |= 1;
+        // delete node 
+        free(nodeTranvers->right);
+        nodeTranvers->right = nullptr;
     }
     else if (nodeTranvers->left != nullptr)
     {
@@ -55,7 +80,10 @@ unsigned char traverseNodes(node * nodeTranvers, vector<TsymTab> * table){
         // increase lenght 
         (table->begin()+retVal)->patternLen++;
         // shift "0" in on left        
-        ((table->begin()+retVal)->bitPatern) >>= 1;
+        ((table->begin()+retVal)->bitPatern) <<= 1;
+        // delete node 
+        free(nodeTranvers->left);
+        nodeTranvers->left = nullptr;
     }
     else 
     {
@@ -64,23 +92,6 @@ unsigned char traverseNodes(node * nodeTranvers, vector<TsymTab> * table){
     }
 
     return retVal;
-}
-
-bool sortVectorDec(node * i, node * j){
-    return (i->count > j->count);
-}
-
-bool sortVectorAsc(Tcounter i, Tcounter j){
-    return (i.count < j.count);
-}
-
-node * createNode(unsigned char character, int count) {
-    struct node *node = (struct node *)malloc(sizeof(struct node));
-    node->character = character;
-    node->count = count;
-    node->left = nullptr;
-    node->right = nullptr;
-    return node;
 }
 
 int main(int argc, char const *argv[])
@@ -99,7 +110,13 @@ int main(int argc, char const *argv[])
     for (int i = 0; i < 256; i++)
     {
         tempCharacter = (unsigned char)i;
+        // fill counter
         charCount.push_back(createNode(tempCharacter, 0));
+        // fill pattern table
+        tempTabItem.bitPatern = 0;
+        tempTabItem.character = tempCharacter;
+        tempTabItem.patternLen = 0;
+        codeTable.push_back(tempTabItem);
     }
     
 #ifndef DEBUG
@@ -155,12 +172,14 @@ int main(int argc, char const *argv[])
                 // fill code table with zero length characters
                 if (charCount[size-1]->count == 0)
                 {
+                    /*
                     // build table item
                     tempTabItem.character = charCount[size-1]->character;
                     tempTabItem.patternLen = 0;
                     tempTabItem.bitPatern = 0;
                     // push table item
                     codeTable.push_back(tempTabItem);
+                    */
                     // delete last entry of counter
                     charCount.pop_back();
                 }
