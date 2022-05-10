@@ -36,34 +36,37 @@ typedef struct TsymTab
 int currentChar;
 int lastChar = '\377';
 
-unsigned char traverseNodes(node * nodeTranvers, vector<TsymTab> * table){
-    unsigned char retVal = 0;
+void traverseNodes(node * nodeTranvers, vector<TsymTab> * table){
+    static unsigned char childes = 0;
+    // increase childes
+    childes++;
     if (nodeTranvers->right != nullptr)
     {
         // get char from lower right node
-        retVal = traverseNodes(nodeTranvers->right, table);
-        // increase length
-        (table->begin()+retVal)->patternLen++;
-        // shift "1" in on left
-        ((table->begin()+retVal)->bitPatern) >>= 1;
-        ((table->begin()+retVal)->bitPatern) |= 1;
+        traverseNodes(nodeTranvers->right, table);
+
+        // delete childe node
+        free(nodeTranvers->right);
+        nodeTranvers->right = nullptr;
     }
-    else if (nodeTranvers->left != nullptr)
+    if (nodeTranvers->left != nullptr)
     {
         // get char from lower left node
-        retVal = traverseNodes(nodeTranvers->left, table);
-        // increase lenght 
-        (table->begin()+retVal)->patternLen++;
-        // shift "0" in on left        
-        ((table->begin()+retVal)->bitPatern) >>= 1;
+        traverseNodes(nodeTranvers->left, table);
+
+        // delete childe node
+        free(nodeTranvers->left);
+        nodeTranvers->left = nullptr;
     }
     else 
     {
         // return char if the node has no childe
-        retVal = nodeTranvers->character;
+        table[0][nodeTranvers->character].patternLen = childes;
     }
 
-    return retVal;
+    // decrease childes
+    childes--;
+    //return retVal;
 }
 
 bool sortVectorDec(node * i, node * j){
@@ -74,6 +77,19 @@ bool sortVectorAsc(Tcounter i, Tcounter j){
     return (i.count < j.count);
 }
 
+bool sortTableAsc(TsymTab i, TsymTab j){
+    bool retVal = false;
+
+    if (i.patternLen == j.patternLen)
+    {
+        retVal = (i.character < j.character);
+    }
+    else
+    retVal = (i.patternLen < j.patternLen);
+    
+    return retVal;
+}
+
 node * createNode(unsigned char character, int count) {
     struct node *node = (struct node *)malloc(sizeof(struct node));
     node->character = character;
@@ -81,6 +97,15 @@ node * createNode(unsigned char character, int count) {
     node->left = nullptr;
     node->right = nullptr;
     return node;
+}
+
+void createPattern(vector<TsymTab> * table){
+    // sort table by pattern length
+    sort(table[0].begin(), table[0].end(), sortTableAsc);
+    
+    /*
+    // PATTERN ERSTELLEN
+    */
 }
 
 int main(int argc, char const *argv[])
@@ -94,12 +119,17 @@ int main(int argc, char const *argv[])
     int size;
     vector<TsymTab> codeTable;
     TsymTab tempTabItem;
+    vector<unsigned char> tempStringToCount;
 
     // inital fill charCounter
     for (int i = 0; i < 256; i++)
     {
         tempCharacter = (unsigned char)i;
         charCount.push_back(createNode(tempCharacter, 0));
+        tempTabItem.character = tempCharacter;
+        tempTabItem.patternLen = 0;
+        tempTabItem.bitPatern = 0;
+        codeTable.push_back(tempTabItem);
     }
     
 #ifndef DEBUG
@@ -156,11 +186,11 @@ int main(int argc, char const *argv[])
                 if (charCount[size-1]->count == 0)
                 {
                     // build table item
-                    tempTabItem.character = charCount[size-1]->character;
-                    tempTabItem.patternLen = 0;
-                    tempTabItem.bitPatern = 0;
+                    //tempTabItem.character = charCount[size-1]->character;
+                    //tempTabItem.patternLen = 0;
+                    //tempTabItem.bitPatern = 0;
                     // push table item
-                    codeTable.push_back(tempTabItem);
+                    //codeTable.push_back(tempTabItem);
                     // delete last entry of counter
                     charCount.pop_back();
                 }
@@ -185,6 +215,9 @@ int main(int argc, char const *argv[])
             // traverse node tree
             traverseNodes(charCount[0], &codeTable);
             
+            // create pattern
+            createPattern(&codeTable);
+
             // write to file
             /*
                 TODO !!! !!! !!!
