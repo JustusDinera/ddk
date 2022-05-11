@@ -38,8 +38,15 @@ int lastChar = '\377';
 
 void traverseNodes(node * nodeTranvers, vector<TsymTab> * table){
     static unsigned char childes = 0;
+    static int rootNode = 1;
+
     // increase childes
-    childes++;
+    if (rootNode)
+        rootNode = 0;
+    else
+        childes++;
+
+    
     if (nodeTranvers->right != nullptr)
     {
         // get char from lower right node
@@ -81,11 +88,9 @@ bool sortTableAsc(TsymTab i, TsymTab j){
     bool retVal = false;
 
     if (i.patternLen == j.patternLen)
-    {
         retVal = (i.character < j.character);
-    }
     else
-    retVal = (i.patternLen < j.patternLen);
+        retVal = (i.patternLen < j.patternLen);
     
     return retVal;
 }
@@ -106,6 +111,7 @@ void createPattern(vector<TsymTab> * table){
     /*
     // PATTERN ERSTELLEN
     */
+
 }
 
 int main(int argc, char const *argv[])
@@ -194,6 +200,7 @@ int main(int argc, char const *argv[])
                     // push table item
                     //codeTable.push_back(tempTabItem);
                     // delete last entry of counter
+                    */
                     charCount.pop_back();
                 }
                 else {
