@@ -1,4 +1,4 @@
-#include <string>
+//#include <string>
 #include <stdio.h>
 #include <fstream>
 #include <vector>
@@ -22,6 +22,7 @@ typedef struct node {
   struct node *right = nullptr;
 };
 
+
 typedef union uPattern {
     uint32_t whole;
     struct bytes {
@@ -37,7 +38,7 @@ typedef struct TsymTab
 {
     unsigned char character;
     unsigned char patternLen = 0;
-    uPattern bitPatern;
+    uPattern bitPattern;
 };
 
 /* 
@@ -55,7 +56,6 @@ void traverseNodes(node * nodeTranvers, vector<TsymTab> * table){
         rootNode = 0;
     else
         childes++;
-
     
     if (nodeTranvers->right != nullptr)
     {
@@ -94,6 +94,7 @@ bool sortVectorAsc(Tcounter i, Tcounter j){
     return (i.count < j.count);
 }
 
+// sort table entries by length first and char value secound
 bool sortTableLenAsc(TsymTab i, TsymTab j){
     bool retVal = false;
     if (i.patternLen == j.patternLen)
@@ -116,6 +117,7 @@ node * createNode(unsigned char character, int count) {
     return node;
 }
 
+// create the pattern of the characters
 void createPattern(vector<TsymTab> * table){
     // pattern variable
     static unsigned int pattern = 0;
@@ -126,7 +128,7 @@ void createPattern(vector<TsymTab> * table){
     {
         if (0 != table[0][i].patternLen)
         {
-            table[0][i].bitPatern.whole = pattern;
+            table[0][i].bitPattern.whole = pattern;
 
             if ((table[0][i].patternLen != table[0][i+1].patternLen) && (i < table[0].size()-1))
             {
@@ -146,49 +148,73 @@ void createFileHead(vector<TsymTab> * codeTable,  ofstream * outputFile){
 
 void createFileBody(vector<TsymTab> * codeTable, ifstream * inputFile,  ofstream * outputFile){
     uPattern tempPat;
-    unsigned char length;
+    unsigned char length = 0;
+    unsigned char bytesToWrite = 0;
     tempPat.whole = 0;
     int character = inputFile->get();
 
     // access whole file 
     while (character !=  EOF)
     {
+        // increase length by lenght of current pattern
         length += codeTable[0][character].patternLen;
+        // shift the rest of the last pattern by length of current pattern
         tempPat.whole <<= codeTable[0][character].patternLen;
-        tempPat.whole |= codeTable[0][character].bitPatern.whole;
-
-        if  (length%8 != 0) {
-            tempPat.whole <<= 8 - (length % 8);
-            length += 8 - (length % 8);
+        // set the current pattern
+        tempPat.whole |= codeTable[0][character].bitPattern.whole;
+        // shift the pattern to align bytes to the left
+        if (length % 8 != 0)
+        {
+            tempPat.whole <<= 8 - length % 8;
+            bytesToWrite = length + 8 - length % 8;
+        }
+        else {
+            bytesToWrite = length;
         }
 
-        switch (length)
+
+        // decide how many bytes filled and put them in the file 
+        switch (bytesToWrite)
         {
         case 32:
             outputFile->put(tempPat.bytes.byte3);
             tempPat.bytes.byte3 = 0;
+            length -= 8;
         case 24:
             outputFile->put(tempPat.bytes.byte2);
             tempPat.bytes.byte2 = 0;
+            length -= 8;
         case 16:
             outputFile->put(tempPat.bytes.byte1);
             tempPat.bytes.byte1 = 0;
+            length -= 8;
         case 8:
-            length = codeTable[0][character].patternLen % 8;
-            if (length == 0)
+            // dont put a bite if its not full
+            if (length % 8 == 0)
             {
                 outputFile->put(tempPat.bytes.byte0);
                 tempPat.bytes.byte0 = 0;
+                length -= 8;
             }
-            else {
-                tempPat.whole >>=  8 - length;
-            }
+            break;
         default:
             break;
         }
 
+        // align the remaining bits to the right
+        if (length != 0)
+        {
+            tempPat.whole >>= 8 - length;
+        }
+        
         character = inputFile->get();
     }
+    if (length !=0)
+    {
+        tempPat.whole <<= 8 - length;
+        outputFile->put(tempPat.bytes.byte0);
+    }
+    
 }
 
 void shiftToFile(vector<TsymTab> * codeTable, ifstream  * counter,  ofstream * outputFile){
@@ -218,7 +244,7 @@ int main(int argc, char const *argv[])
         charCount.push_back(createNode(tempCharacter, 0));
         tempTabItem.character = tempCharacter;
         tempTabItem.patternLen = 0;
-        tempTabItem.bitPatern.whole = 0;
+        tempTabItem.bitPattern.whole = 0;
         codeTable.push_back(tempTabItem);
     }
     
@@ -276,20 +302,9 @@ int main(int argc, char const *argv[])
                 // fill code table with zero length characters
                 if (charCount[size-1]->count == 0)
                 {
-                    /*
-                    // build table item
-                    //tempTabItem.character = charCount[size-1]->character;
-                    //tempTabItem.patternLen = 0;
-                    //tempTabItem.bitPatern = 0;
-                    // push table item
-                    //codeTable.push_back(tempTabItem);
-                    // delete last entry of counter
-                    */
                     charCount.pop_back();
                 }
                 else {
-                    // build characer sting 
-                    //tempCharacter.append(charCount[size-2]->character); 
                     // set count with sum of two least elements
                     charCount.push_back(createNode('\000', charCount[size-1]->count + charCount[size-2]->count));
                     
@@ -319,9 +334,7 @@ int main(int argc, char const *argv[])
 #endif
             shiftToFile(&codeTable, &inputFile, &outputFile);
         }
-
-
-
+        
         // close files
         inputFile.close();
         outputFile << EOF;
