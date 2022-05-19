@@ -73,6 +73,9 @@ int main(int argc, char const *argv[])
     TsymTab tempSymb;
     int minPatLen = 0;
     int maxPatLen = 0;
+    int32_t tempPat = 0;
+    uPattern bitStream = {0};
+    int bitStreamLen = 0;
 
 #ifndef DEBUG
     if (argv[1] == nullptr)
@@ -90,54 +93,90 @@ int main(int argc, char const *argv[])
         inputFile.open((string)(argv[1]), ios::in | ios::binary);
         outputFile.open((string)(argv[2]), ios::out | ios::binary);
 #else
-        inputFile.open("Faust.txt.huf", ios::out | ios::binary);
-        outputFile.open("Faust_decode.txt", ios::in | ios::binary);
+        inputFile.open("Faust.txt.huf", ios::in | ios::binary);
+        outputFile.open("Faust_decode.txt", ios::out | ios::binary);
 #endif
         // check state of files
-        if (!(outputFile.is_open()))
-        {
-            printf("Ausgabedatei konnte nicht geoeffnet werden\n");
-        }
-        else if (!(inputFile.is_open()))
+        if (!(inputFile.is_open()))
         {
             printf("Eingabefile konnte nicht geoeffnet werden\n");
         }
-        
-        // read Inputfile
-        currentChar = inputFile.get();
-        if (currentChar == EOF)
+        else if (!(outputFile.is_open()))
         {
-            printf("Leere Datei geoeffnet\n");
+            printf("Ausgabedatei konnte nicht geoeffnet werden\n");
         }
-        else {
-            // get length of the pattern (read header)
-            for (char i = 0; i < 256; i++)
+        else
+        {
+            // read Inputfile
+            currentChar = inputFile.get();
+            if (currentChar == EOF)
             {
-                tempSymb.character = i;
-                tempSymb.patternLen = currentChar;
-                codeTable.push_back(tempSymb);
+                printf("Leere Datei geoeffnet\n");
             }
-
-            // creates the pattern for characters
-            createPattern(&codeTable);
-
-            // set min pattern length
-            for (int i = 0; i < codeTable.size(); i++)
-            {
-                if (codeTable[i].patternLen != 0)
+            else {
+                // get length of the pattern (read header)
+                for (int i = 0; i < 256; i++)
                 {
-                    minPatLen = codeTable[i].patternLen;
-                    i = codeTable.size();
+                    tempSymb.character = i;
+                    tempSymb.patternLen = currentChar;
+                    codeTable.push_back(tempSymb);
+                    currentChar = inputFile.get();
                 }
-            }
-            // set max pattern length
-            maxPatLen = codeTable[codeTable.size()-1].patternLen;
 
-            while (currentChar != EOF)
-            {
-                for (int i = minPatLen; i < maxPatLen; i++)
+                // creates the pattern for characters
+                createPattern(&codeTable);
+
+                // set min pattern length
+                for (int i = 0; i < codeTable.size(); i++)
                 {
-                    
+                    if (codeTable[i].patternLen != 0)
+                    {
+                        minPatLen = codeTable[i].patternLen;
+                        i = codeTable.size();
+                    }
+                }
+                // set max pattern length
+                maxPatLen = codeTable[codeTable.size()-1].patternLen;
+
+                // read first 4 bytes of body
+                bitStream.bytes.byte3 = currentChar;
+                bitStream.bytes.byte2 = inputFile.get();
+                bitStream.bytes.byte1 = inputFile.get();
+                bitStream.bytes.byte0 = inputFile.get();
+                bitStreamLen = 32;
+
+                currentChar = inputFile.get();
+                while ((currentChar != EOF) && (bitStreamLen > minPatLen))
+                {
+                    for (int i = minPatLen; i < maxPatLen; i++)
+                    { 
+                        tempPat = bitStream.whole >> (bitStreamLen - i);
+                        for (int j = 0; j < 256; j++)
+                        {
+                            if ((codeTable[j].patternLen == i)&&(codeTable[j].bitPattern.whole == tempPat))
+                            {
+                                outputFile.put(codeTable[j].character);
+                                bitStream.whole <<= i;
+                                bitStreamLen -= i;
+                            }
+                        }
+                        while((bitStreamLen < 24) && (currentChar != EOF))
+                        {
+                            bitStream.whole >>= (3 - bitStreamLen/ 8) * 8 - bitStreamLen % 8;
+                            bitStreamLen += 8;
+                            if (currentChar != EOF)
+                            {
+                                bitStream.bytes.byte0 = currentChar;
+                            }
+                            /*else
+                            {
+                                bitStream.bytes.byte0 = 0;
+                            }
+                            */
+                            bitStream.whole <<=  (3 - bitStreamLen/ 8) * 8 - bitStreamLen % 8;                        
+                            currentChar = inputFile.get();
+                        }
+                    }
                 }
             }
         }
