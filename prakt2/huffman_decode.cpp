@@ -43,24 +43,21 @@ bool sortTableLenAsc(TsymTab i, TsymTab j){
 }
 
 // create the pattern of the characters
-void createPattern(vector<TsymTab> * table){
+void createPattern(vector<TsymTab> & table){
     // pattern variable
     static unsigned int pattern = 0;
     // sort table by pattern length
-    sort(table[0].begin(), table[0].end(), sortTableLenAsc);
+    sort(table.begin(), table.end(), sortTableLenAsc);
     
-    for (int i = 0; i < table[0].size(); i++)
+    for (int i = 0; i < table.size(); i++)
     {
-        if (0 != table[0][i].patternLen)
-        {
-            table[0][i].bitPattern.whole = pattern;
+        table[i].bitPattern.whole = pattern;
 
-            if ((table[0][i].patternLen != table[0][i+1].patternLen) && (i < table[0].size()-1))
-            {
-                pattern <<= 1;
-            }
-            pattern++;
+        if ((table[i].patternLen != table[i+1].patternLen) && (i < table.size()-1))
+        {
+            pattern <<= 1;
         }
+        pattern++;
     }
 }
 
@@ -117,64 +114,66 @@ int main(int argc, char const *argv[])
                 // get length of the pattern (read header)
                 for (int i = 0; i < 256; i++)
                 {
-                    tempSymb.character = i;
-                    tempSymb.patternLen = currentChar;
-                    codeTable.push_back(tempSymb);
+                    if (currentChar != 0)
+                    {
+                        tempSymb.character = i;
+                        tempSymb.patternLen = currentChar;
+                        codeTable.push_back(tempSymb);
+                    }
                     currentChar = inputFile.get();
                 }
 
                 // creates the pattern for characters
-                createPattern(&codeTable);
+                createPattern(codeTable);
 
+                /*
                 // set min pattern length
-                for (int i = 0; i < codeTable.size(); i++)
-                {
-                    if (codeTable[i].patternLen != 0)
-                    {
-                        minPatLen = codeTable[i].patternLen;
-                        i = codeTable.size();
-                    }
-                }
+                minPatLen = codeTable[0].patternLen;
+
                 // set max pattern length
                 maxPatLen = codeTable[codeTable.size()-1].patternLen;
-
-                // read first 4 bytes of body
-                bitStream.bytes.byte3 = currentChar;
-                bitStream.bytes.byte2 = inputFile.get();
-                bitStream.bytes.byte1 = inputFile.get();
-                bitStream.bytes.byte0 = inputFile.get();
-                bitStreamLen = 32;
-
-                currentChar = inputFile.get();
-                while ((currentChar != EOF) && (bitStreamLen > minPatLen))
+                */ 
+                
+                //currentChar = inputFile.get();
+                while ((currentChar != EOF))
                 {
-                    for (int i = minPatLen; i < maxPatLen; i++)
-                    { 
-                        tempPat = bitStream.whole >> (bitStreamLen - i);
-                        for (int j = 0; j < 256; j++)
+                    while((bitStreamLen < 24) && (currentChar != EOF))
+                    {
+                        bitStreamLen += 8;
+                        bitStream.whole <<= 8;
+                        bitStream.whole |= currentChar;
+
+                        currentChar = inputFile.get();
+                    }
+                    
+
+                    for (int j = 0; j < codeTable.size(); j++)
+                    {
+                        tempPat = bitStream.whole >> (bitStreamLen - codeTable[j].patternLen);
+                        tempPat &= (uint32_t)(0xFFFFFFFF) >> (32 - codeTable[j].patternLen);
+                        if (codeTable[j].bitPattern.whole == tempPat)
                         {
-                            if ((codeTable[j].patternLen == i)&&(codeTable[j].bitPattern.whole == tempPat))
-                            {
-                                outputFile.put(codeTable[j].character);
-                                bitStream.whole <<= i;
-                                bitStreamLen -= i;
-                            }
+                            outputFile.put(codeTable[j].character);
+                            //bitStream.whole <<= codeTable[j].patternLen;
+                            bitStreamLen -= codeTable[j].patternLen;
+                            // loop exit criterias
+                            j = 256;
                         }
-                        while((bitStreamLen < 24) && (currentChar != EOF))
+                    }
+                }
+                while (bitStreamLen > 0)
+                {
+                    for (int j = 0; j < codeTable.size(); j++)
+                    {
+                        tempPat = bitStream.whole >> (bitStreamLen - codeTable[j].patternLen);
+                        tempPat &= (uint32_t)(0xFFFFFFFF) >> (32 - codeTable[j].patternLen);
+                        if (codeTable[j].bitPattern.whole == tempPat)
                         {
-                            bitStream.whole >>= (3 - bitStreamLen/ 8) * 8 - bitStreamLen % 8;
-                            bitStreamLen += 8;
-                            if (currentChar != EOF)
-                            {
-                                bitStream.bytes.byte0 = currentChar;
-                            }
-                            /*else
-                            {
-                                bitStream.bytes.byte0 = 0;
-                            }
-                            */
-                            bitStream.whole <<=  (3 - bitStreamLen/ 8) * 8 - bitStreamLen % 8;                        
-                            currentChar = inputFile.get();
+                            outputFile.put(codeTable[j].character);
+                            //bitStream.whole <<= codeTable[j].patternLen;
+                            bitStreamLen -= codeTable[j].patternLen;
+                            // loop exit criterias
+                            j = 256;
                         }
                     }
                 }
