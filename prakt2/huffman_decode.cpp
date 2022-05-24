@@ -4,17 +4,19 @@
 #include <algorithm>
 
 #define DEBUG
+#define DEBUG_INPUT "test.txt.huf"
+#define DEBUG_OUTPUT "test_decode.txt"
 
 using namespace std;
 
 // datatype for character counter
-typedef struct Tcounter
+struct Tcounter
 {
     unsigned char character;
     int count;
 };
 
-typedef union uPattern {
+union uPattern {
     uint32_t whole;
     struct bytes {
         unsigned char byte0;
@@ -25,7 +27,7 @@ typedef union uPattern {
 };
 
 // datatype for encode symbole table 
-typedef struct TsymTab
+struct TsymTab
 {
     unsigned char character;
     unsigned char patternLen = 0;
@@ -90,8 +92,8 @@ int main(int argc, char const *argv[])
         inputFile.open((string)(argv[1]), ios::in | ios::binary);
         outputFile.open((string)(argv[2]), ios::out | ios::binary);
 #else
-        inputFile.open("Faust.txt.huf", ios::in | ios::binary);
-        outputFile.open("Faust_decode.txt", ios::out | ios::binary);
+        inputFile.open(DEBUG_INPUT, ios::in | ios::binary);
+        outputFile.open(DEBUG_OUTPUT, ios::out | ios::binary);
 #endif
         // check state of files
         if (!(inputFile.is_open()))
@@ -153,7 +155,7 @@ int main(int argc, char const *argv[])
                         tempPat &= (uint32_t)(0xFFFFFFFF) >> (32 - codeTable[j].patternLen);
                         if (codeTable[j].bitPattern.whole == tempPat)
                         {
-                            outputFile.put(codeTable[j].character);
+                            outputFile.put((unsigned char)codeTable[j].character);
                             //bitStream.whole <<= codeTable[j].patternLen;
                             bitStreamLen -= codeTable[j].patternLen;
                             // loop exit criterias

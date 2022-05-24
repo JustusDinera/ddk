@@ -5,17 +5,19 @@
 #include <algorithm>
 
 #define DEBUG
+#define DEBUG_INPUT "test.txt"
+#define DEBUG_OUTPUT "test.txt.huf"
 
 using namespace std;
 
 // datatype for character counter
-typedef struct Tcounter
+struct Tcounter
 {
     unsigned char character;
     int count;
 };
 
-typedef struct node {
+struct node {
   unsigned char character;
   int count;
   struct node *left = nullptr;
@@ -23,7 +25,7 @@ typedef struct node {
 };
 
 
-typedef union uPattern {
+union uPattern {
     uint32_t whole;
     struct bytes {
         unsigned char byte0;
@@ -34,7 +36,7 @@ typedef union uPattern {
 };
 
 // datatype for encode symbole table 
-typedef struct TsymTab
+struct TsymTab
 {
     unsigned char character;
     unsigned char patternLen = 0;
@@ -264,8 +266,8 @@ int main(int argc, char const *argv[])
         inputFile.open((string)(argv[1]), ios::in | ios::binary);
         outputFile.open((string)(argv[2]), ios::out | ios::binary);
 #else
-        inputFile.open("Faust.txt", ios::in | ios::binary);
-        outputFile.open("Faust.txt.huf", ios::out | ios::binary);
+        inputFile.open(DEBUG_INPUT, ios::in | ios::binary);
+        outputFile.open(DEBUG_OUTPUT, ios::out | ios::binary);
 #endif
         // check state of files
         if (!(outputFile.is_open()))
@@ -330,7 +332,7 @@ int main(int argc, char const *argv[])
 #ifndef DEBUG
             inputFile.open((string)(argv[1]), ios::in | ios::binary);
 #else
-            inputFile.open("Faust.txt", ios::in | ios::binary);
+            inputFile.open(DEBUG_INPUT, ios::in | ios::binary);
 #endif
             shiftToFile(&codeTable, &inputFile, &outputFile);
         }
