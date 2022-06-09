@@ -4,8 +4,10 @@
 #include <algorithm>
 
 #define DEBUG
-#define DEBUG_INPUT "WHZ_uncompressed.bmp.huf"
-#define DEBUG_OUTPUT "WHZ_decompressed.bmp"
+//#define DEBUG_INPUT "WHZ_uncompressed.bmp.huf"
+#define DEBUG_INPUT "Faust.txt.huf"
+//#define DEBUG_OUTPUT "WHZ_decompressed.bmp"
+#define DEBUG_OUTPUT "Faust_decompressed.txt"
 
 using namespace std;
 

@@ -6,7 +6,9 @@
 
 #define DEBUG
 #define DEBUG_INPUT "WHZ_uncompressed.bmp"
+//#define DEBUG_INPUT "Faust.txt"
 #define DEBUG_OUTPUT "WHZ_uncompressed.bmp.huf"
+//#define DEBUG_OUTPUT "Faust.txt.huf"
 
 using namespace std;
 
@@ -212,7 +214,7 @@ void createFileBody(vector<TsymTab> & codeTable, ifstream * inputFile,  ofstream
             tempPat.bytes.byte1 = 0;
             length -= 8;
         case 8:
-            // dont put a bite if its not full
+            // dont put a byte if its not full
             if (length % 8 == 0)
             {
                 outputFile->put(tempPat.bytes.byte0);
@@ -258,6 +260,7 @@ int main(int argc, char const *argv[])
     vector<TsymTab> codeTable;
     TsymTab tempTabItem;
     vector<unsigned char> tempStringToCount;
+    node * tempNode = nullptr;
 
     // inital fill charCounter
     for (int i = 0; i < 256; i++)
@@ -332,16 +335,17 @@ int main(int argc, char const *argv[])
                 }
                 else {
                     // set count with sum of two least elements
-                    charCount.push_back(createNode('\000', charCount[size-1]->count + charCount[size-2]->count));
-                    
+                    node* tempNode = createNode('\000', charCount[size-1]->count + charCount[size-2]->count);
                     // set childe nodes
-                    charCount[size]->left = charCount[size-1];
-                    charCount[size]->right = charCount[size-2];
-                    // rank new entry 
-                    sort(charCount.begin(), charCount.end(), sortVectorDec);
+                    tempNode->left = charCount[size-1];
+                    tempNode->right = charCount[size-2];
                     // pop childe nodes
                     charCount.pop_back();
                     charCount.pop_back();
+                    // now add new parent node
+                    charCount.push_back(tempNode);
+                    // rank new entry
+                    sort(charCount.begin(), charCount.end(), sortVectorDec);
                 }
             }
             while (size > 2);
