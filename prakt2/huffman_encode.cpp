@@ -5,8 +5,8 @@
 #include <algorithm>
 
 #define DEBUG
-#define DEBUG_INPUT "test.txt"
-#define DEBUG_OUTPUT "test.txt.huf"
+#define DEBUG_INPUT "WHZ_uncompressed.bmp"
+#define DEBUG_OUTPUT "WHZ_uncompressed.bmp.huf"
 
 using namespace std;
 
@@ -120,35 +120,56 @@ node * createNode(unsigned char character, int count) {
 }
 
 // create the pattern of the characters
-void createPattern(vector<TsymTab> * table){
+void createPattern(vector<TsymTab> &table){
     // pattern variable
     static unsigned int pattern = 0;
-    // sort table by pattern length
-    sort(table[0].begin(), table[0].end(), sortTableLenAsc);
     
-    for (int i = 0; i < table[0].size(); i++)
-    {
-        if (0 != table[0][i].patternLen)
-        {
-            table[0][i].bitPattern.whole = pattern;
+    // sort table by pattern length
+    sort(table.begin(), table.end(), sortTableLenAsc);
 
-            if ((table[0][i].patternLen != table[0][i+1].patternLen) && (i < table[0].size()-1))
+    for (int i = 0; i < table.size(); i++)
+    {
+        if (0 != table[i].patternLen)
+        {
+            if (i > 0)
             {
-                pattern <<= 1;
+                if ((table[i-1].patternLen != 0))
+                {
+                    pattern++;
+                    pattern <<= (table[i].patternLen - table[i-1].patternLen);
+                }
             }
-            pattern++;
+            table[i].bitPattern.whole = pattern;
         }
     }
 }
 
-void createFileHead(vector<TsymTab> * codeTable,  ofstream * outputFile){
-    for (int i = 0; i < codeTable[0].size(); i++)
+void writeFileLen(vector<node *> & charCount, ofstream &outfile)
+{
+    uint32_t len = 0;
+    uPattern fileLen;
+
+    for (int i = 0; i < charCount.size(); i++)
     {
-        outputFile->put(codeTable[0][i].patternLen);
+        len += charCount[i]->count;
+    }
+
+    fileLen.whole = len;
+
+    outfile.put(fileLen.bytes.byte0);
+    outfile.put(fileLen.bytes.byte1);
+    outfile.put(fileLen.bytes.byte2);
+    outfile.put(fileLen.bytes.byte3);
+}
+
+void createFileHead(vector<TsymTab> & codeTable,  ofstream * outputFile){
+    for (int i = 0; i < codeTable.size(); i++)
+    {
+        outputFile->put(codeTable[i].patternLen);
     }
 }
 
-void createFileBody(vector<TsymTab> * codeTable, ifstream * inputFile,  ofstream * outputFile){
+void createFileBody(vector<TsymTab> & codeTable, ifstream * inputFile,  ofstream * outputFile){
     uPattern tempPat;
     unsigned char length = 0;
     unsigned char bytesToWrite = 0;
@@ -159,11 +180,11 @@ void createFileBody(vector<TsymTab> * codeTable, ifstream * inputFile,  ofstream
     while (character !=  EOF)
     {
         // increase length by lenght of current pattern
-        length += codeTable[0][character].patternLen;
+        length += codeTable[character].patternLen;
         // shift the rest of the last pattern by length of current pattern
-        tempPat.whole <<= codeTable[0][character].patternLen;
+        tempPat.whole <<= codeTable[character].patternLen;
         // set the current pattern
-        tempPat.whole |= codeTable[0][character].bitPattern.whole;
+        tempPat.whole |= codeTable[character].bitPattern.whole;
         // shift the pattern to align bytes to the left
         if (length % 8 != 0)
         {
@@ -219,8 +240,8 @@ void createFileBody(vector<TsymTab> * codeTable, ifstream * inputFile,  ofstream
     
 }
 
-void shiftToFile(vector<TsymTab> * codeTable, ifstream  * counter,  ofstream * outputFile){
-    sort(codeTable[0].begin(), codeTable[0].end(), sortTableCharAsc);
+void shiftToFile(vector<TsymTab> & codeTable, ifstream  * counter,  ofstream * outputFile){
+    sort(codeTable.begin(), codeTable.end(), sortTableCharAsc);
     createFileHead(codeTable, outputFile);
     createFileBody(codeTable, counter, outputFile);
 }
@@ -249,6 +270,7 @@ int main(int argc, char const *argv[])
         tempTabItem.bitPattern.whole = 0;
         codeTable.push_back(tempTabItem);
     }
+
     
 #ifndef DEBUG
     if (argv[1] == nullptr)
@@ -293,10 +315,12 @@ int main(int argc, char const *argv[])
                 currentChar = inputFile.get();
             }
             while (currentChar != EOF);
-            inputFile.close();
 
             // sort the vector -> most common first
             sort(charCount.begin(), charCount.end(), sortVectorDec);
+
+            // write count of symbols to file
+            writeFileLen(charCount, outputFile);
 
             do
             {
@@ -326,20 +350,18 @@ int main(int argc, char const *argv[])
             traverseNodes(charCount[0], &codeTable);
             
             // create pattern
-            createPattern(&codeTable);
+            createPattern(codeTable);
 
-            // write to file
-#ifndef DEBUG
-            inputFile.open((string)(argv[1]), ios::in | ios::binary);
-#else
-            inputFile.open(DEBUG_INPUT, ios::in | ios::binary);
-#endif
-            shiftToFile(&codeTable, &inputFile, &outputFile);
+            // go to the begin of the input file
+            inputFile.clear();
+            inputFile.seekg(ios::beg);
+            
+            shiftToFile(codeTable, &inputFile, &outputFile);
         }
         
         // close files
         inputFile.close();
-        outputFile << EOF;
+        //outputFile << EOF;
         outputFile.close();
     }
     

@@ -4,8 +4,8 @@
 #include <algorithm>
 
 #define DEBUG
-#define DEBUG_INPUT "test.txt.huf"
-#define DEBUG_OUTPUT "test_decode.txt"
+#define DEBUG_INPUT "WHZ_uncompressed.bmp.huf"
+#define DEBUG_OUTPUT "WHZ_decompressed.bmp"
 
 using namespace std;
 
@@ -45,21 +45,27 @@ bool sortTableLenAsc(TsymTab i, TsymTab j){
 }
 
 // create the pattern of the characters
-void createPattern(vector<TsymTab> & table){
+void createPattern(vector<TsymTab> &table){
     // pattern variable
     static unsigned int pattern = 0;
+    
     // sort table by pattern length
     sort(table.begin(), table.end(), sortTableLenAsc);
-    
+
     for (int i = 0; i < table.size(); i++)
     {
-        table[i].bitPattern.whole = pattern;
-
-        if ((table[i].patternLen != table[i+1].patternLen) && (i < table.size()-1))
+        if (0 != table[i].patternLen)
         {
-            pattern <<= 1;
+            if (i > 0)
+            {
+                if ((table[i-1].patternLen != 0))
+                {
+                    pattern++;
+                    pattern <<= (table[i].patternLen - table[i-1].patternLen);
+                }
+            }
+            table[i].bitPattern.whole = pattern;
         }
-        pattern++;
     }
 }
 
@@ -75,6 +81,7 @@ int main(int argc, char const *argv[])
     int32_t tempPat = 0;
     uPattern bitStream = {0};
     int bitStreamLen = 0;
+    uPattern fileLen;
 
 #ifndef DEBUG
     if (argv[1] == nullptr)
@@ -113,6 +120,13 @@ int main(int argc, char const *argv[])
                 printf("Leere Datei geoeffnet\n");
             }
             else {
+                // get length of decompressed file
+                fileLen.bytes.byte0 = currentChar;
+                fileLen.bytes.byte1 = inputFile.get();
+                fileLen.bytes.byte2 = inputFile.get();
+                fileLen.bytes.byte3 = inputFile.get();
+                currentChar = inputFile.get();
+
                 // get length of the pattern (read header)
                 for (int i = 0; i < 256; i++)
                 {
@@ -137,7 +151,7 @@ int main(int argc, char const *argv[])
                 */ 
                 
                 //currentChar = inputFile.get();
-                while ((currentChar != EOF))
+                while ((fileLen.whole > 0))
                 {
                     while((bitStreamLen < 24) && (currentChar != EOF))
                     {
@@ -160,9 +174,12 @@ int main(int argc, char const *argv[])
                             bitStreamLen -= codeTable[j].patternLen;
                             // loop exit criterias
                             j = 256;
+                            // decrese file length
+                            fileLen.whole--;
                         }
                     }
                 }
+                /*
                 while (bitStreamLen > 0)
                 {
                     for (int j = 0; j < codeTable.size(); j++)
@@ -179,8 +196,13 @@ int main(int argc, char const *argv[])
                         }
                     }
                 }
+                */
+
             }
         }
+        
+        inputFile.close();
+        outputFile.close();
     }
     return 0;
 }

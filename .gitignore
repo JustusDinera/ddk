@@ -1,2 +1,7 @@
 *.pdf
 *.out
+*.txt
+*.huf
+*.bmp
+huffman_decode
+huffman_encode
