@@ -85,46 +85,50 @@ uint16_t hamming84_decode(uint_least8_t encoded_data)
     syndromeBits.bits.s1 = inDataSys.bits.p1 ^ inDataSys.bits.d0 ^ inDataSys.bits.d2 ^ inDataSys.bits.d3;
     syndromeBits.bits.s2 = inDataSys.bits.p2 ^ inDataSys.bits.d1 ^ inDataSys.bits.d2 ^ inDataSys.bits.d3;
 
-    switch (syndromeBits.whole)
-    {
-    case 1:
-        inDataSys.bits.p0 ^= 1;
-        break;
-    case 2:
-        inDataSys.bits.p1 ^= 1;
-        break;
-    case 3:
-        inDataSys.bits.d0 ^= 1;
-        break;
-    case 4:
-        inDataSys.bits.p2 ^= 1;
-        break;
-    case 5:
-        inDataSys.bits.d1 ^= 1;
-        break;
-    case 6:
-        inDataSys.bits.d2 ^= 1;
-        break;
-    case 7:
-        inDataSys.bits.d3 ^= 1;
-        break;
-
-    default:
-        break;
-    }
-
     parity =  inDataSys.bits.p0 ^ inDataSys.bits.p1 ^ inDataSys.bits.p2 ^ inDataSys.bits.d0 ^ inDataSys.bits.d1 ^ inDataSys.bits.d2 ^ inDataSys.bits.d3;
 
-    if ((inDataSys.bits.parity != parity) && (syndromeBits.whole != 0))
+    if (((inDataSys.bits.parity != parity) && (syndromeBits.whole == 0))||((inDataSys.bits.parity == parity) && (syndromeBits.whole != 0)))
     {
         retVal = 0xFFFF;
+        return retVal;
     }
     else if (inDataSys.bits.parity != parity)
     {
         inDataSys.bits.parity ^= 1;
         retVal = inDataSys.whole;
+        return retVal;
     }
-    else
+    if (syndromeBits.whole != 0)
+    {
+        switch (syndromeBits.whole)
+        {
+        case 1:
+            inDataSys.bits.p0 ^= 1;
+            break;
+        case 2:
+            inDataSys.bits.p1 ^= 1;
+            break;
+        case 3:
+            inDataSys.bits.d0 ^= 1;
+            break;
+        case 4:
+            inDataSys.bits.p2 ^= 1;
+            break;
+        case 5:
+            inDataSys.bits.d1 ^= 1;
+            break;
+        case 6:
+            inDataSys.bits.d2 ^= 1;
+            break;
+        case 7:
+            inDataSys.bits.d3 ^= 1;
+            break;
+
+        default:
+            break;
+        }
+    }
+    
     {
         retVal = inDataSys.whole;
     }
